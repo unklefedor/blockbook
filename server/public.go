@@ -177,7 +177,7 @@ func (s *PublicServer) ConnectFullPublicInterface() {
 	serveMux.HandleFunc(path+"api/estimatefee/", s.jsonHandler(s.apiEstimateFee, apiDefault))
 	serveMux.HandleFunc(path+"api/balancehistory/", s.jsonHandler(s.apiBalanceHistory, apiDefault))
 	// v2 format
-	serveMux.HandleFunc(path+"api/v2/blocks", s.htmlTemplateHandler(s.explorerBlocks))
+	serveMux.HandleFunc(path+"api/v2/blocks", s.htmlTemplateHandler(s.apiBlocks))
 	serveMux.HandleFunc(path+"api/v2/block-index/", s.jsonHandler(s.apiBlockIndex, apiV2))
 	serveMux.HandleFunc(path+"api/v2/tx-specific/", s.jsonHandler(s.apiTxSpecific, apiV2))
 	serveMux.HandleFunc(path+"api/v2/tx/", s.jsonHandler(s.apiTx, apiV2))
@@ -1083,6 +1083,22 @@ func (s *PublicServer) apiBalanceHistory(r *http.Request, apiVersion int) (inter
 		}
 	}
 	return history, err
+}
+
+func (s *PublicServer) apiBlocks (w http.ResponseWriter, r *http.Request) (interface{}, error) {
+	var blocks *api.Blocks
+	var err error
+	s.metrics.ExplorerViews.With(common.Labels{"action": "blocks"}).Inc()
+	page, ec := strconv.Atoi(r.URL.Query().Get("page"))
+	if ec != nil {
+		page = 0
+	}
+	blocks, err = s.api.GetBlocks(page, blocksOnPage)
+	if err != nil {
+		return nil, err
+	}
+
+	return blocks, nil
 }
 
 func (s *PublicServer) apiBlock(r *http.Request, apiVersion int) (interface{}, error) {
